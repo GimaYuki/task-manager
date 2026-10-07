@@ -2,79 +2,48 @@
 
 タスク管理アプリ
 
-**React + TypeScript + Python Lambda + API Gateway (HTTP API) + DynamoDB**
+**React + TypeScript（Vite） + Python（ローカル API）**
 
 ## 構成
 
 ```
-backend/          Python Lambda (GET /hello)
-frontend/         React + TypeScript (Vite) — Hello World 表示
-template.yaml     SAM (HTTP API + S3 + CloudFront)
-samconfig.toml    stack: task-manager
-.cursor/mcp.json  AWS Serverless MCP (profile=deploy)
+backend/app.py    インメモリ API（127.0.0.1:3000、/tasks）
+frontend/         React + TypeScript（Vite）— タスクの追加・状態変更・削除
 ```
 
-### 構成図
-
-![AWS architecture](docs/images/hello-architecture.png)
-
-1. ブラウザが CloudFront → S3 のフロントを取得する  
-2. 画面に載った React（TypeScript）が表示される  
-3. その画面が API Gateway の `/hello` を呼ぶ  
-4. Lambda が JSON を返す  
+1. `python backend/app.py` が `/tasks` を受け付ける
+2. 画面が一覧を出し、追加・状態変更・削除を送る
+3. データはプロセスのメモリだけ。停止すると消える
 
 ## 前提
 
-```powershell
-aws sso login --profile deploy
-aws sts get-caller-identity --profile deploy
-```
+Python 3 と Node.js（`npm` が使えること）。
 
-Docker Desktop（`sam local` 用）:
+## ローカル確認
 
-```powershell
-winget install -e --id Docker.DockerDesktop
-```
-
-## デプロイ
+先に API を起動し、このターミナルは開いたままにする。
 
 ```powershell
-sam build
-sam deploy --profile deploy
+python backend/app.py
 ```
 
-`frontend/.env.production`:
+別のターミナルで確認する。`{"tasks":[]}` が返る。
+
+```powershell
+curl.exe http://127.0.0.1:3000/tasks
+```
+
+そのターミナルでフロントを起動し、表示された URL を開く。既定は `http://127.0.0.1:5173`。
+
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+
+API の URL を変えるときだけ、`frontend/.env.local` に書く。未設定時は `http://127.0.0.1:3000`。
 
 ```env
 VITE_API_URL=http://127.0.0.1:3000
 ```
 
-```powershell
-cd frontend
-npm ci
-npm run build
-aws s3 sync dist/ s3://<FrontendBucketName>/ --delete --profile deploy
-aws cloudfront create-invalidation --distribution-id <CloudFrontDistributionId> --paths "/*" --profile deploy
-```
-
-## ローカル確認
-
-```powershell
-sam build
-sam local start-api
-```
-
-API だけ:
-
-```powershell
-curl http://127.0.0.1:3000/hello
-```
-
-フロント:
-
-```powershell
-cd frontend
-npm ci
-# .env.local に VITE_API_URL=http://127.0.0.1:3000
-npm run dev
-```
