@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 
+# SAM
+.aws-sam/
+
 # ローカル環境
 .env
 .env.*
